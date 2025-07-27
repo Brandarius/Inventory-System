@@ -43,15 +43,31 @@ namespace Inventory2
                 {
                     if (row.DataBoundItem is Part part)
                     {
-                        Inventory.DeletePart(part);
+                        var associatedProductIDs = GetAssociatedProductIDs(part);
+                        if (associatedProductIDs.Count > 0)
+                        {
+                            string ids = string.Join(", ", associatedProductIDs);
+                            MessageBox.Show($"Cannot delete this part because it is associated with product(s) with ID(s): {ids}");
+                            continue; // skip deleting this part
+                        }
+
+                        DialogResult result = MessageBox.Show($"Are you sure you want to delete the part '{part.Name}'?",
+                            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                        if (result == DialogResult.Yes)
+                        {
+                            Inventory.DeletePart(part);
+                        }
                     }
                 }
+                partDataGridView.Refresh();
             }
             else
             {
                 MessageBox.Show("Please select a part to delete.");
             }
         }
+
 
         // Open the form to modify the selected part
         private void partModifyButton_Click(object sender, EventArgs e)
@@ -198,14 +214,53 @@ namespace Inventory2
                 {
                     if (row.DataBoundItem is Product product)
                     {
-                        Inventory.DeleteProduct(product);
+                        // Confirm deletion
+                        DialogResult result = MessageBox.Show($"Are you sure you want to delete the product '{product.ProductName}'?",
+                            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                        if (result == DialogResult.Yes)
+                        {
+                            Inventory.DeleteProduct(product);
+                        }
                     }
                 }
+
+                productDataGridView.Refresh();
             }
             else
             {
                 MessageBox.Show("Please select a product to delete.");
             }
         }
+
+        // Function to verify if the part is associated with a product
+        private bool IsPartAssociated(Part selectedPart)
+        {
+            // Check if any product has this part associated
+            foreach (Product product in Inventory.Products)
+            {
+                if (product.AssociatedParts.Contains(selectedPart))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Get the product id of the product that is stopping the deletion of a part
+        private List<int> GetAssociatedProductIDs(Part part)
+        {
+            List<int> associatedIDs = new List<int>();
+
+            foreach (Product product in Inventory.Products)
+            {
+                if (product.AssociatedParts.Contains(part))
+                {
+                    associatedIDs.Add(product.ProductID);
+                }
+            }
+            return associatedIDs;
+        }
+
     }
 }
